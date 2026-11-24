@@ -1,6 +1,7 @@
 import type { DeviceInfoDto } from '@jellyfin/sdk/lib/generated-client/models/device-info-dto';
 import Delete from '@mui/icons-material/Delete';
 import Edit from '@mui/icons-material/Edit';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import Box from '@mui/material/Box/Box';
 import Button from '@mui/material/Button/Button';
 import IconButton from '@mui/material/IconButton';
@@ -16,6 +17,7 @@ import UserAvatarButton from 'apps/dashboard/components/UserAvatarButton';
 import { useDeleteDevice } from 'apps/dashboard/features/devices/api/useDeleteDevice';
 import { useDevices } from 'apps/dashboard/features/devices/api/useDevices';
 import { useUpdateDevice } from 'apps/dashboard/features/devices/api/useUpdateDevice';
+import DeviceCapabilitiesDialog from 'apps/dashboard/features/devices/components/DeviceCapabilitiesDialog';
 import DeviceNameCell from 'apps/dashboard/features/devices/components/DeviceNameCell';
 import type { DeviceInfoCell } from 'apps/dashboard/features/devices/types/deviceInfoCell';
 import ConfirmDialog from 'components/ConfirmDialog';
@@ -57,6 +59,7 @@ export const Component = () => {
     const [ isDeleteConfirmOpen, setIsDeleteConfirmOpen ] = useState(false);
     const [ isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen ] = useState(false);
     const [ pendingDeleteDeviceId, setPendingDeleteDeviceId ] = useState<string>();
+    const [ capabilitiesDevice, setCapabilitiesDevice ] = useState<DeviceInfoDto>();
     const deleteDevice = useDeleteDevice();
     const updateDevice = useUpdateDevice();
 
@@ -83,6 +86,10 @@ export const Component = () => {
             });
         }
     }, [ deleteDevice, onCloseDeleteConfirmDialog, pendingDeleteDeviceId ]);
+
+    const onCloseCapabilitiesDialog = useCallback(() => {
+        setCapabilitiesDevice(undefined);
+    }, []);
 
     const onDeleteAll = useCallback(() => {
         setIsDeleteAllConfirmOpen(true);
@@ -205,7 +212,7 @@ export const Component = () => {
         displayColumnDefOptions: {
             'mrt-row-actions': {
                 header: '',
-                size: 100
+                size: 140
             }
         },
         renderRowActions: ({ row, table }) => {
@@ -220,6 +227,13 @@ export const Component = () => {
                         }
                     }}
                 >
+                    <Tooltip title={globalize.translate('ButtonInfo')}>
+                        <IconButton
+                            onClick={() => setCapabilitiesDevice(row.original)}
+                        >
+                            <InfoOutlined />
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip title={globalize.translate('Edit')}>
                         <IconButton
                             onClick={() => table.setEditingRow(row)}
@@ -270,6 +284,10 @@ export const Component = () => {
             isError={isDevicesError || isUsersError}
             errorMessage={globalize.translate('DevicesLoadError')}
         >
+            <DeviceCapabilitiesDialog
+                device={capabilitiesDevice}
+                onClose={onCloseCapabilitiesDialog}
+            />
             <ConfirmDialog
                 open={isDeleteConfirmOpen}
                 title={globalize.translate('HeaderDeleteDevice')}
