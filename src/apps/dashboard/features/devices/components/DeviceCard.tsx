@@ -19,6 +19,7 @@ import CardActions from '@mui/material/CardActions';
 import IconButton from '@mui/material/IconButton';
 import SimpleAlert from 'components/SimpleAlert';
 import playMethodHelper from 'components/playback/playMethodHelper';
+import { getTranscodeReasonText } from 'components/playback/transcodeReasons';
 import globalize from 'lib/globalize';
 import getSessionNowPlayingStreamInfo from '../../sessions/utils/getSessionNowPlayingStreamInfo';
 import { useSendPlayStateCommand } from '../../sessions/api/usePlayPauseSession';
@@ -84,31 +85,45 @@ const DeviceCard = ({ device }: DeviceCardProps) => {
     const showPlaybackInfo = useCallback(() => {
         const displayPlayMethod = playMethodHelper.getDisplayPlayMethod(device);
 
+        // The reasons the server gave for not playing the file directly, with a hint on how to avoid each one.
+        const transcodeReasons = (device.TranscodingInfo?.TranscodeReasons ?? []) as string[];
+        const reasonsLabel = displayPlayMethod === 'Transcode' ? 'LabelReasonForTranscoding' : 'LabelReasons';
+        const reasonsText = transcodeReasons.length ?
+            globalize.translate(reasonsLabel) + '\n'
+                + transcodeReasons
+                    .map(getTranscodeReasonText)
+                    .map(({ reason, hint }) => '• ' + reason + (hint ? '\n   ' + hint : ''))
+                    .join('\n') :
+            globalize.translate('PlaybackNoReasonReported');
+
         switch (displayPlayMethod) {
             case 'Remux':
                 setPlaybackInfoTitle(globalize.translate('Remuxing'));
-                setPlaybackInfoDesc(globalize.translate('RemuxHelp1') + '\n' + globalize.translate('RemuxHelp2'));
+                setPlaybackInfoDesc(
+                    // RemuxHelp1 assumes the container is the problem, so only show it when the server gave no reason.
+                    (transcodeReasons.length ? reasonsText : globalize.translate('RemuxHelp1') + '\n\n' + reasonsText)
+                    + '\n\n' + globalize.translate('RemuxHelp2')
+                );
                 break;
             case 'DirectStream':
                 setPlaybackInfoTitle(globalize.translate('DirectStreaming'));
-                setPlaybackInfoDesc(globalize.translate('DirectStreamHelp1') + '\n' + globalize.translate('DirectStreamHelp2'));
+                setPlaybackInfoDesc(
+                    (transcodeReasons.length ? reasonsText : globalize.translate('DirectStreamHelp1') + '\n\n' + reasonsText)
+                    + '\n\n' + globalize.translate('DirectStreamHelp2')
+                );
                 break;
             case 'DirectPlay':
                 setPlaybackInfoTitle(globalize.translate('DirectPlaying'));
                 setPlaybackInfoDesc(globalize.translate('DirectPlayHelp'));
                 break;
-            case 'Transcode': {
-                const transcodeReasons = device.TranscodingInfo?.TranscodeReasons as string[] | undefined;
-                const localizedTranscodeReasons = transcodeReasons?.map(transcodeReason => globalize.translate(transcodeReason)) || [];
+            case 'Transcode':
                 setPlaybackInfoTitle(globalize.translate('Transcoding'));
                 setPlaybackInfoDesc(
                     globalize.translate('MediaIsBeingConverted')
                     + '\n\n' + getSessionNowPlayingStreamInfo(device)
-                    + '\n\n' + globalize.translate('LabelReasonForTranscoding')
-                    + '\n' + localizedTranscodeReasons.join('\n')
+                    + '\n\n' + reasonsText
                 );
                 break;
-            }
         }
 
         setIsPlaybackInfoOpen(true);
