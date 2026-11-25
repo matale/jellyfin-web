@@ -7,6 +7,7 @@ import { getReadableSize } from 'utils/file';
 import layoutManager from '../layoutManager';
 import { playbackManager } from '../playback/playbackmanager';
 import playMethodHelper from '../playback/playMethodHelper';
+import { getTranscodeReasonText } from '../playback/transcodeReasons';
 import { pluginManager } from '../pluginManager';
 
 import 'elements/emby-button/paper-icon-button-light';
@@ -113,7 +114,8 @@ function getSession(instance, player) {
 }
 
 function translateReason(reason) {
-    return globalize.translate('' + reason);
+    const { reason: reasonText, hint } = getTranscodeReasonText('' + reason);
+    return hint ? `${reasonText}<br/><small>${hint}</small>` : reasonText;
 }
 
 function getTranscodingStats(session, player, displayPlayMethod) {
